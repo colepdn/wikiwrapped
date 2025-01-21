@@ -1,0 +1,31 @@
+{
+  "name": "Wikipedia Wrapped",
+  "description": "Track your time spent on Wikipedia",
+  "version": "0.1",
+  "manifest_version": 3,
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "https://*.wikipedia.org/*"
+  ],
+  "background": {
+    "service_worker": "worker.js"
+  },
+  "content_scripts": [
+    {
+      "js": [
+        "content.js"
+      ],
+      "matches": [
+        "https://*.wikipedia.org/*"
+      ]
+    }
+  ]
+}
