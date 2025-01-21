@@ -1,0 +1,6 @@
+BUGS
+    fix new tab behavior.
+        when opening a page in a new tab, the link nav event is fired and we start counting for that page.
+        we should instead detect that, and ignore the event.
+FEATURES
+    add a fancy bar chart for the extension popup
