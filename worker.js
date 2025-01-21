@@ -30,7 +30,7 @@ function interval(your_url) {
   let count = counts[url]
   badge(counts[url])
   current = setInterval(async function () {
-    if (!await checkFocus()) return
+    if (!await checkFocus()) return //probably write to storage on the first tick off
     console.log('hi')
     counts[url]++
     badge(counts[url])
@@ -40,6 +40,7 @@ function interval(your_url) {
 
 chrome.tabs.onActivated.addListener(activeInfo => {
   chrome.tabs.get(activeInfo.tabId, tab => {
+    // probably write to storage right here
     clearInterval(current)
     if (tab.url === undefined) return realbadge("off"); // not wikipedia
     // we probably don't have to check because of the permissions we set in the manifest
@@ -50,8 +51,8 @@ chrome.tabs.onActivated.addListener(activeInfo => {
 });
 
 chrome.webNavigation.onCommitted.addListener(details => {
+  // probably write to storage right here
   clearInterval(current)
-
   console.log("details", details)
   const url = new URL(details.url)
   const hostname = url.hostname
