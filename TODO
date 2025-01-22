@@ -2,5 +2,11 @@ BUGS
     fix new tab behavior.
         when opening a page in a new tab, the link nav event is fired and we start counting for that page.
         we should instead detect that, and ignore the event.
+    fix it running on non-wikipedia sites
+        i think this has something to do with chrome://extensions/
+    maybe filter out non-wikipedia sites from the db
 FEATURES
-    add a fancy bar chart for the extension popup
+    (DONE) add a fancy bar chart for the extension popup
+    track dates an article was visited and time spent on those dates, like this:
+        total: 30min, jan 21st: 15min, feb 2: 7 min, feb 14: 8 min
+        show this when you click on one of the bars on the chart

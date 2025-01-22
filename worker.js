@@ -1,6 +1,7 @@
 let current = {}
 let wroteOnUnfocused = false
 let counts = {}
+let tabId
 
 function badge(seconds) {
   if (seconds < 60) {
@@ -13,6 +14,23 @@ function realbadge(text) {
   chrome.action.setBadgeText({ text })
 }
 
+function clearbadge() {
+  chrome.action.setBadgeBackgroundColor({ color: [0, 0, 0, 0] })
+}
+
+function yellowbadge() {
+  chrome.action.setBadgeBackgroundColor({ color: "yellow" })
+}
+
+function redbadge() {
+  chrome.action.setBadgeBackgroundColor({ color: "red" })
+}
+
+function badgeoff() {
+  redbadge()
+  realbadge("off");
+}
+
 function cleanup(url) { // if necessary
   return url.split("&")[0].split("#")[0]
 }
@@ -23,6 +41,12 @@ async function checkFocus() {
       resolve(browser.focused)
     })
   })
+}
+
+function midnightToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
 }
 
 /**
@@ -64,9 +88,11 @@ async function interval(your_url) {
   console.log(url, stored)
   counts[url] ??= (stored.time ?? 0)
   badge(counts[url])
+  clearbadge()
   console.log
   const id = setInterval(async function () {
     if (!await checkFocus()) {
+      yellowbadge()
       if (!wroteOnUnfocused) {
         await setStorageV1(url, counts[url])
         wroteOnUnfocused = true
@@ -79,6 +105,7 @@ async function interval(your_url) {
     if (counts[url] % 10 === 0) {
       setStorageV1(url, counts[url])
     }
+    clearbadge()
     badge(counts[url])
   }, 1000)
   current = {
@@ -96,26 +123,28 @@ function teardown_interval() {
 
 chrome.tabs.onActivated.addListener(activeInfo => {
   chrome.tabs.get(activeInfo.tabId, tab => {
-    // probably write to storage right here
-    // clearInterval(current)
+    tabId = activeInfo.tabId
     teardown_interval()
-    if (tab.url === undefined) return realbadge("off"); // not wikipedia
+    if (tab.url === undefined) return badgeoff() // not wikipedia
+    if (tab.url.startsWith("chrome://")) return badgeoff()
     // we probably don't have to check because of the permissions we set in the manifest
-    console.log("we're probably on wikipedia (tab)")
+    console.log("we're probably on wikipedia (tab). url: ", tab.url)
     console.log("tab:", tab)
     interval(tab.url)
   });
 });
 
 chrome.webNavigation.onCommitted.addListener(details => {
+  console.log(details.tabId, tabId, details.id === tabId)
   // probably write to storage right here
   teardown_interval()
   console.log("details", details) //tabId and transitionType are important i think. there's a bug here currently, see TODO
   const url = new URL(details.url)
   const hostname = url.hostname
   console.log(hostname, hostname.split('.').at(-2))
-  if (!hostname.includes("wikipedia")) return realbadge("off")
-  if (hostname.split('.').at(-2) !== 'wikipedia') return realbadge("off")
+  if (!hostname.includes("wikipedia")) return badgeoff()
+  if (hostname.split('.').at(-2) !== 'wikipedia') return badgeoff()
+
   console.log("we're on wikipedia! (nav)")
   interval(details.url)
 });
