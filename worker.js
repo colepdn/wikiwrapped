@@ -54,14 +54,17 @@ function midnightToday() {
 * wrapper around the storage api
 * @param {string} url
 * @param {number} time
+* @param {number[]} dates
 * @returns {Promise<void>}
 */
-async function setStorageV1(url, time) {
-  chrome.storage.local.set(
+async function setStorageV1(url, time, dates = []) {
+  await chrome.storage.local.set( // maybe we should return this 
+	  			  // but i don't really want to figure out what this returns to change the type soooo  
     {
       [url]: {
         ver: 1,
-        time
+        time,
+	dates
       }
     })
 
@@ -78,7 +81,8 @@ async function getStorageV1(url) {
   const obj = val[url]
   if (obj === undefined) return false;
   return {
-    time: obj?.time
+    time: obj.time,
+    dates: obj?.dates ?? []
   }
 }
 
@@ -89,21 +93,22 @@ async function interval(your_url) {
   counts[url] ??= (stored.time ?? 0)
   badge(counts[url])
   clearbadge()
-  console.log
+  const today = midnightToday()
+  if (!stored.dates.includes(today)) stored.dates.push(today)
   const id = setInterval(async function () {
     if (!await checkFocus()) {
       yellowbadge()
       if (!wroteOnUnfocused) {
-        await setStorageV1(url, counts[url])
+        await setStorageV1(url, counts[url], stored.dates)
         wroteOnUnfocused = true
       }
-      return //probably write to storage on the first tick off
+      return 
     }
     wroteOnUnfocused = false
     console.log('hi')
     counts[url]++
     if (counts[url] % 10 === 0) {
-      setStorageV1(url, counts[url])
+      setStorageV1(url, counts[url], stored.dates)
     }
     clearbadge()
     badge(counts[url])
