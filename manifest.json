@@ -17,7 +17,8 @@
     "https://*.wikipedia.org/*"
   ],
   "background": {
-    "service_worker": "worker.js"
+    "service_worker": "worker.js",
+    "type": "module"
   },
   "content_scripts": [
     {

@@ -1,135 +1,61 @@
+import { badge, realbadge, clearbadge, yellowbadge, redbadge, badgeoff, cleanup, checkFocus, midnightToday } from "./utils.js"
+import { total, getStorageV2, updateDayV2 } from "./storage2.js"
+
 let current = {}
 let wroteOnUnfocused = false
 let counts = {}
 let tabId
-
-function badge(seconds) {
-  if (seconds < 60) {
-    return realbadge(`${seconds}s`)
-  }
-  return realbadge(`${(seconds - (seconds % 60)) / 60}m`)
-}
-
-function realbadge(text) {
-  chrome.action.setBadgeText({ text })
-}
-
-function clearbadge() {
-  chrome.action.setBadgeBackgroundColor({ color: [0, 0, 0, 0] })
-}
-
-function yellowbadge() {
-  chrome.action.setBadgeBackgroundColor({ color: "yellow" })
-}
-
-function redbadge() {
-  chrome.action.setBadgeBackgroundColor({ color: "red" })
-}
-
-function badgeoff() {
-  redbadge()
-  realbadge("off");
-}
-
-function cleanup(url) { // if necessary
-  return url.split("&")[0].split("#")[0]
-}
-
-async function checkFocus() {
-  return new Promise(resolve => {
-    chrome.windows.getCurrent(browser => {
-      resolve(browser.focused)
-    })
-  })
-}
-
-function midnightToday() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0)
-  return d.getTime()
-}
-
-/**
-* setStorageV1
-* wrapper around the storage api
-* @param {string} url
-* @param {number} time
-* @param {number[]} dates
-* @returns {Promise<void>}
-*/
-async function setStorageV1(url, time, dates = []) {
-  await chrome.storage.local.set( // maybe we should return this 
-	  			  // but i don't really want to figure out what this returns to change the type soooo  
-    {
-      [url]: {
-        ver: 1,
-        time,
-	dates
-      }
-    })
-
-}
-/**
-* getStorageV1
-* another wrapper around the storage api.
-* in the future will just convert to V2 or V3 or whatever the current one is
-* @param {string} url
-* @returns {Promise<{ time: number | undefined }>}
-*/
-async function getStorageV1(url) {
-  const val = await chrome.storage.local.get(url)
-  const obj = val[url]
-  if (obj === undefined) return false;
-  return {
-    time: obj.time,
-    dates: obj?.dates ?? []
-  }
-}
+let today = midnightToday()
 
 async function interval(your_url) {
-  const url = cleanup(your_url)
-  const stored = await getStorageV1(url)
-  console.log(url, stored)
-  counts[url] ??= (stored.time ?? 0)
-  badge(counts[url])
-  clearbadge()
-  const today = midnightToday()
-  if (!stored.dates.includes(today)) stored.dates.push(today)
-  const id = setInterval(async function () {
-    if (!await checkFocus()) {
-      yellowbadge()
-      if (!wroteOnUnfocused) {
-        await setStorageV1(url, counts[url], stored.dates)
-        wroteOnUnfocused = true
-      }
-      return 
-    }
-    wroteOnUnfocused = false
-    console.log('hi')
-    counts[url]++
-    if (counts[url] % 10 === 0) {
-      setStorageV1(url, counts[url], stored.dates)
-    }
-    clearbadge()
-    badge(counts[url])
-  }, 1000)
-  current = {
-    id,
-    url
-  }
+	const url = cleanup(your_url)
+	let stored = await getStorageV2(url)
+	if (!stored) stored = {}
+	today = midnightToday()
+	if (!counts[url]) counts[url] = {}
+	counts[url][today] ??= (stored[today] ?? 0)
+	
+	const clone = { [today]: 0, ...counts[url] }
+	const prevtotal = total(clone)
+	console.log('prev total', prevtotal)
 
+	badge(prevtotal + counts[url][today])
+	clearbadge()
+
+	console.log(counts, clone)
+	const id = setInterval(async () => {
+		if (!await checkFocus()) {
+			yellowbadge()
+			if (!wroteOnUnfocused) {
+				await updateDayV2(url, today, counts[url][today])
+				wroteOnUnfocused = true
+			}
+			return
+		}
+		wroteOnUnfocused = false
+		counts[url][today]++
+		const time = counts[url][today]
+		clearbadge()
+		if (time % 10 === 0) {
+				await updateDayV2(url, today, time) 
+		}
+		badge(prevtotal + time)
+	}, 1000)
+	
+	current = { id, url }
 }
 
-function teardown_interval() {
-  clearInterval(current.id)
-  setStorageV1(current.url, counts[current.url])
-  current = {}
+async function teardown_interval() {
+	clearInterval(current.id)
+	if (counts[current.url]?.[today])	
+		await updateDayV2(current.url, today, counts[current.url][today])
+	current = {}
 }
 
 chrome.tabs.onActivated.addListener(activeInfo => {
-  chrome.tabs.get(activeInfo.tabId, tab => {
+  chrome.tabs.get(activeInfo.tabId, async tab => {
     tabId = activeInfo.tabId
-    teardown_interval()
+    await teardown_interval()
     if (tab.url === undefined) return badgeoff() // not wikipedia
     if (tab.url.startsWith("chrome://")) return badgeoff()
     // we probably don't have to check because of the permissions we set in the manifest
@@ -139,10 +65,10 @@ chrome.tabs.onActivated.addListener(activeInfo => {
   });
 });
 
-chrome.webNavigation.onCommitted.addListener(details => {
+chrome.webNavigation.onCommitted.addListener(async details => {
   console.log(details.tabId, tabId, details.id === tabId)
   // probably write to storage right here
-  teardown_interval()
+  await teardown_interval()
   console.log("details", details) //tabId and transitionType are important i think. there's a bug here currently, see TODO
   const url = new URL(details.url)
   const hostname = url.hostname

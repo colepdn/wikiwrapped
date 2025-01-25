@@ -4,9 +4,13 @@ BUGS
         we should instead detect that, and ignore the event.
     fix it running on non-wikipedia sites
         i think this has something to do with chrome://extensions/
+	it has nothing to do with chrome:// urls. this runs fucking anywhere
+	i think it's when we switch tabs we do absolutely no checking if we're actually on wikipedia.
+	i don't know though, i haven't looked at the code since i wrote it.
     maybe filter out non-wikipedia sites from the db
+    fix the counter, right now it's only showing time spent today. that's not right.
+    	this should be fixed im just leaving this here cause i don't trust i did it right
 FEATURES
-    (DONE) add a fancy bar chart for the extension popup
-    track dates an article was visited and time spent on those dates, like this:
-        total: 30min, jan 21st: 15min, feb 2: 7 min, feb 14: 8 min
-        show this when you click on one of the bars on the chart
+	add the info page in the popup
+		show total time spent, and time spent on certain days. show another bar chart? i dunno
+		maybe show the most time spent per day
