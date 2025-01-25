@@ -1,9 +1,23 @@
-import { total } from "./storage2.js"
+import { total, getStorageV2 } from "./storage2.js"
+import { secString } from "./utils.js"
 
+const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
-function updateInfoPanel(url) {
+async function updateInfoPanel(url) {
 	const panel = document.querySelector("#info")
-	let html = `<h1>${urltoname(url)}</h1>`
+	const data = await getStorageV2(url)
+	const items = []
+	for (const [date, time] of Object.entries(data)) {
+		const d = new Date(parseInt(date))
+		items.push(`${months[d.getMonth()]} ${d.getDate()}: ${secString(time)}`)
+	}
+	console.log(items)
+	let html = `
+		<h1>${urltoname(url)}</h1>
+		<div>
+			${items.join("</div><div>")}
+		</div> 
+		`
 	panel.innerHTML = html
 
 }
@@ -12,7 +26,7 @@ function urltoname(url) {
 	return decodeURI(url.split("/").at(-1)).replaceAll("_", " ")
 }
 
-const DEBUG = true
+const DEBUG = true 
 const db = await chrome.storage.local.get(null)
 console.log(db)
 if (DEBUG) {
@@ -37,34 +51,11 @@ totals.sort((a, b) => b.totals - a.totals)
 
 let html = '<div class="chart">'
 for (const item of totals) {
-	html += `<div class="chartitem" id="${item.url}" style="width: ${(item.totals / max) * 100}%;">${urltoname(item.url)}: ${item.totals} seconds</div>`
+	html += `<div class="chartitem" id="${item.url}" style="width: ${(item.totals / max) * 100}%;">${urltoname(item.url)}: ${secString(item.totals)}</div>`
 }
 
 graph.innerHTML = html + "</div>"
 
 for (const child of graph.children[0].children) {
 	child.onclick = () => {updateInfoPanel(child.id)}
-}
-
-if (false) {
-list = list.filter(item => !!item[1].ver && !!item[1].time && item[0].includes('wikipedia'))
-list.sort((a, b) => total(b[1].dates) - total(a[1].dates))
-console.log('ls', list)
-let html = '<div class="chart">'
-let max = 1;
-for (const [_, item] of list) if (item.time > max) max = item.time;
-for (const [url, item] of list) {
-	html += `<div class="chartitem" id="${url
-			}" style="width: ${(item.time / max) * 100}%;">${
-				urltoname(url)
-			}: ${
-				item.time
-			} seconds</div>`
-}
-
-graph.innerHTML = html + "</div>"
-
-for (const child of graph.children[0].children) {
-	child.onclick = () => {updateInfoPanel(child.id)}
-}
 }

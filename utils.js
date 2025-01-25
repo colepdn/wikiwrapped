@@ -1,3 +1,22 @@
+export function plural(str, quantity) {
+	return quantity === 1 ? str : str + "s"
+}
+
+export function secString(s) {
+	const h = (s - (s % 3600))
+	const hours = h / 3600
+	const m = ((s - h) - ((s - h) % 60)) 
+	const minutes = m / 60
+	const seconds = s - h - m
+	let str = ""
+	if (hours !== 0) str += `${hours} ${plural("hour", hours)}`
+	if (hours !== 0 && (minutes !== 0 || seconds !== 0)) str += ", "
+	if (minutes !== 0) str += `${minutes} ${plural("minute", minutes)}`
+	if (minutes !== 0 && seconds !== 0) str += ", "
+	if (seconds !== 0) str += `${seconds} ${plural("second", seconds)}`
+	return str
+}
+
 export function badge(seconds) {
   if (seconds < 60) {
     return realbadge(`${seconds}s`)
