@@ -1,17 +1,10 @@
 BUGS
-	fix new tab behavior.
-		when opening a page in a new tab, the link nav event is fired and we start counting for that page.
-		we should instead detect that, and ignore the event.
 	fix it running on non-wikipedia sites
 		i think this has something to do with chrome://extensions/
 		it has nothing to do with chrome:// urls. this runs fucking anywhere
 		i think it's when we switch tabs we do absolutely no checking if we're actually on wikipedia.
 		i don't know though, i haven't looked at the code since i wrote it.
-		maybe filter out non-wikipedia sites from the db
-	(DONE) fix the counter, right now it's only showing time spent today. that's not right.
-		this should be fixed im just leaving this here cause i don't trust i did it right
-	fix the counter doubling on https://en.wikipedia.org/wiki/File:The_Monarch_of_the_Glen,_Edwin_Landseer,_1851.png
-		i suspect this is from totaling the previous values and still including today's
+		(DONE) maybe filter out non-wikipedia sites from the db
 
 FEATURES
 	figure out what to put for the title! it just doesn't look right without it!

@@ -16,7 +16,8 @@ async function updateInfoPanel(url) {
 		<h1>${urltoname(url)}</h1>
 		<div>
 			${items.join("</div><div>")}
-		</div> 
+		</div>
+		<hr style="margin-top: 5%">
 		`
 	panel.innerHTML = html
 
@@ -26,12 +27,8 @@ function urltoname(url) {
 	return decodeURI(url.split("/").at(-1)).replaceAll("_", " ")
 }
 
-const DEBUG = true 
 const db = await chrome.storage.local.get(null)
 console.log(db)
-if (DEBUG) {
-	document.querySelector("#storage").innerText = JSON.stringify(db)
-}
 const graph = document.querySelector("#graph")
 
 let list = Object.entries(db)

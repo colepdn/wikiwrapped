@@ -14,15 +14,12 @@ async function interval(your_url) {
 	today = midnightToday()
 	if (!counts[url]) counts[url] = {}
 	counts[url][today] ??= (stored[today] ?? 0)
-	
-	const clone = { [today]: 0, ...counts[url] }
-	const prevtotal = total(clone)
+	const prevtotal = total(counts[url]) - counts[url][today] ?? 0
 	console.log('prev total', prevtotal)
 
 	badge(prevtotal + counts[url][today])
 	clearbadge()
 
-	console.log(counts, clone)
 	const id = setInterval(async () => {
 		if (!await checkFocus()) {
 			yellowbadge()
@@ -52,34 +49,38 @@ async function teardown_interval() {
 	current = {}
 }
 
+function isWikipedia(u) {
+	const url = new URL(u)
+	const hostname = url.hostname
+	console.log(hostname, hostname.split('.').at(-2))
+	if (!hostname.includes("wikipedia")) return false
+	if (hostname.split('.').at(-2) !== 'wikipedia') return false
+	return true 
+}
+
 chrome.tabs.onActivated.addListener(activeInfo => {
-  chrome.tabs.get(activeInfo.tabId, async tab => {
-    tabId = activeInfo.tabId
-    await teardown_interval()
-    if (tab.url === undefined) return badgeoff() // not wikipedia
-    if (tab.url.startsWith("chrome://")) return badgeoff()
-    // we probably don't have to check because of the permissions we set in the manifest
-    console.log("we're probably on wikipedia (tab). url: ", tab.url)
-    console.log("tab:", tab)
-    interval(tab.url)
-  });
+	chrome.tabs.get(activeInfo.tabId, async tab => {
+		tabId = activeInfo.tabId
+		await teardown_interval()
+		if (tab.url === undefined) return badgeoff() // not wikipedia
+		if (tab.url.startsWith("chrome://")) return badgeoff()
+		// we probably don't have to check because of the permissions we set in the manifest
+		//we probably do :sob:
+		if (!isWikipedia(tab.url)) return badgeoff()
+		console.log("we're probably on wikipedia (tab). url: ", tab.url)
+		console.log("tab:", tab)
+		interval(tab.url)
+	});
 });
 
 chrome.webNavigation.onCommitted.addListener(async details => {
-  console.log(details.tabId, tabId, details.id === tabId)
-  // probably write to storage right here
-  await teardown_interval()
-  console.log("details", details) //tabId and transitionType are important i think. there's a bug here currently, see TODO
-  const url = new URL(details.url)
-  const hostname = url.hostname
-  console.log(hostname, hostname.split('.').at(-2))
-  if (!hostname.includes("wikipedia")) return badgeoff()
-  if (hostname.split('.').at(-2) !== 'wikipedia') return badgeoff()
-
-  console.log("we're on wikipedia! (nav)")
-  interval(details.url)
+	// this is false if the user opened the window in a new tab in the background
+	// we should likely just ignore this navigation then? likely gonna work fine :P
+	const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true })
+	if (tab.url !== details.url) return console.log('ignoring nav, tab opened in bg')
+	await teardown_interval()
+	if (!isWikipedia(details.url)) return badgeoff()
+	console.log("we're on wikipedia! (nav)")
+	interval(details.url)
 });
 
-function check() {
-  return location.href.includes("wikipedia")
-}
