@@ -9,7 +9,6 @@
   },
   "permissions": [
     "storage",
-    "unlimitedStorage",
     "activeTab",
     "webNavigation"
   ],
